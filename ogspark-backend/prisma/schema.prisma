@@ -1,0 +1,479 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum Department {
+  CSE
+  IT
+  ECE
+  EEE
+  MECH
+  CIVIL
+  OTHER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum NotificationType {
+  PROJECT_UPDATE
+  TASK_ASSIGNED
+  TASK_COMPLETED
+  COMMENT_ADDED
+  MEMBER_ADDED
+  SYSTEM
+  ATTENDANCE
+  FEES
+  ANNOUNCEMENT
+  DOCUMENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  NOT_MARKED
+}
+
+enum AnnouncementPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum FeeStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIAL
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ==================== USER MODEL ====================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  password          String
+  name              String?
+  studentId         String?   @unique
+  department        Department?
+  role              UserRole  @default(USER)
+  avatar            String?
+  dateOfBirth       DateTime?
+  phoneNumber       String?
+  address           String?
+  isActive          Boolean   @default(true)
+  isEmailVerified   Boolean   @default(false)
+  lastLogin         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Relations
+  projects          Project[]        @relation("UserProjects")
+  ownedProjects     Project[]        @relation("ProjectOwner")
+  sessions          Session[]
+  apiKeys           ApiKey[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  assignedTasks     Task[]           @relation("AssignedTasks")
+  createdTasks      Task[]           @relation("CreatedTasks")
+  comments          Comment[]
+  files             File[]
+  documents         Document[]
+  memberProjects    ProjectMember[]
+  settings          Settings?
+  activityLogs      ActivityLog[]
+  attendances       Attendance[]
+  fees              Fee[]
+  emailVerification EmailVerification?
+  announcements     Announcement[]    @relation("CreatedAnnouncements")
+  
+  @@map("users")
+}
+
+// ==================== AUTHENTICATION MODELS ====================
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@map("password_resets")
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("email_verifications")
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  name      String
+  key       String   @unique
+  userId    String
+  isActive  Boolean  @default(true)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("api_keys")
+}
+
+// ==================== PROJECT MANAGEMENT MODELS ====================
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  userId      String   // Owner ID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  owner       User           @relation("ProjectOwner", fields: [userId], references: [id], onDelete: Cascade)
+  members     ProjectMember[]
+  tasks       Task[]
+  comments    Comment[]
+  files       File[]
+  documents   Document[]
+  
+  @@map("projects")
+}
+
+model ProjectMember {
+  id         String     @id @default(cuid())
+  projectId  String
+  userId     String
+  role       MemberRole @default(MEMBER)
+  joinedAt   DateTime   @default(now())
+  
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(PENDING)
+  priority    TaskPriority @default(MEDIUM)
+  projectId   String
+  assignedTo  String?
+  createdBy   String
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  // Relations
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    User?      @relation("AssignedTasks", fields: [assignedTo], references: [id], onDelete: SetNull)
+  creator     User       @relation("CreatedTasks", fields: [createdBy], references: [id])
+  comments    Comment[]
+  files       File[]
+  documents   Document[]
+  
+  @@map("tasks")
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  content    String
+  userId     String
+  taskId     String?
+  projectId  String?
+  parentId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task       Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent     Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    Comment[] @relation("CommentReplies")
+  
+  @@map("comments")
+}
+
+// ==================== FILE & DOCUMENT MODELS ====================
+
+model File {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         BigInt
+  path         String
+  userId       String
+  projectId    String?
+  taskId       String?
+  isPublic     Boolean  @default(false)
+  downloadCount Int     @default(0)
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task         Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@map("files")
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  path         String
+  userId       String
+  category     String?
+  isPublic     Boolean  @default(false)
+  department   String?
+  downloadCount Int     @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task         Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  projectId    String?
+  taskId       String?
+  
+  @@map("documents")
+}
+
+// ==================== ATTENDANCE MODEL ====================
+
+model Attendance {
+  id        String   @id @default(cuid())
+  studentId String
+  date      DateTime
+  status    AttendanceStatus @default(PRESENT)
+  subject   String?
+  remarks   String?
+  markedBy  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  student   User     @relation(fields: [studentId], references: [studentId], onDelete: Cascade)
+  
+  @@unique([studentId, date])
+  @@map("attendances")
+}
+
+// ==================== FEES MODEL ====================
+
+model Fee {
+  id         String     @id @default(cuid())
+  studentId  String
+  amount     Float
+  dueDate    DateTime
+  feeType    String
+  semester   String?
+  status     FeeStatus  @default(PENDING)
+  paidAt     DateTime?
+  paymentId  String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  
+  // Relations
+  student    User       @relation(fields: [studentId], references: [studentId], onDelete: Cascade)
+  payment    FeePayment? @relation(fields: [paymentId], references: [id])
+  
+  @@map("fees")
+}
+
+model FeePayment {
+  id            String        @id @default(cuid())
+  feeId         String        @unique
+  amount        Float
+  paymentMethod String
+  transactionId String?
+  status        PaymentStatus @default(COMPLETED)
+  paymentDate   DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  
+  fee           Fee           @relation(fields: [feeId], references: [id], onDelete: Cascade)
+  
+  @@map("fee_payments")
+}
+
+// ==================== ANNOUNCEMENT MODEL ====================
+
+model Announcement {
+  id                String              @id @default(cuid())
+  title             String
+  content           String
+  priority          AnnouncementPriority @default(MEDIUM)
+  createdBy         String
+  targetDepartments Json                @default("[]")
+  expiresAt         DateTime?
+  attachments       Json                @default("[]")
+  viewCount         Int                 @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  creator           User                @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  
+  @@map("announcements")
+}
+
+// ==================== NOTIFICATION MODEL ====================
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  userId    String
+  isRead    Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+  
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ==================== LOGGING MODELS ====================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  userId     String?
+  userEmail  String?
+  resource   String?
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([createdAt])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+  userId       String
+  activityType String
+  description  String
+  entityType   String?
+  entityId     String?
+  metadata     Json?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+  @@index([activityType])
+  @@map("activity_logs")
+}
+
+// ==================== SETTINGS MODEL ====================
+
+model Settings {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  theme                  String   @default("light")
+  notificationsEnabled   Boolean  @default(true)
+  emailNotifications     Boolean  @default(true)
+  pushNotifications      Boolean  @default(true)
+  inAppNotifications     Boolean  @default(true)
+  language               String   @default("en")
+  timezone               String   @default("UTC")
+  notificationPreferences Json     @default("{}")
+  preferences            Json     @default("{}")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("settings")
+}

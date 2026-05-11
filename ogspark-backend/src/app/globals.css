@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: var(--font-sans), sans-serif; /* Updated variable name */
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%; /* White */
+    --foreground: 0 0% 3.9%; /* Black */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 0 0% 3.9%; /* Black */
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 0 0% 3.9%; /* Black */
+    --primary: 24 98% 50%; /* Orange */
+    --primary-foreground: 0 0% 98%; /* Almost White */
+    --secondary: 0 0% 96.1%; /* Light Gray */
+    --secondary-foreground: 0 0% 9%; /* Dark Gray */
+    --muted: 0 0% 96.1%; /* Light Gray */
+    --muted-foreground: 0 0% 45.1%; /* Medium Gray */
+    --accent: 0 0% 96.1%; /* Light Gray */
+    --accent-foreground: 0 0% 9%; /* Dark Gray */
+    --destructive: 0 84.2% 60.2%; /* Standard Red */
+    --destructive-foreground: 0 0% 98%; /* Almost White */
+    --border: 0 0% 89.8%; /* Light Gray Border */
+    --input: 0 0% 89.8%; /* Light Gray Input */
+    --ring: 24 98% 50%; /* Orange */
+    --chart-1: 24 98% 50%; /* Orange */
+    --chart-2: 180 80% 35%; /* Teal */
+    --chart-3: 300 80% 35%; /* Purple */
+    --chart-4: 0 84.2% 60.2%; /* Standard Red */
+    --chart-5: 0 0% 63.9%; /* Gray */
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%; /* Almost White */
+    --sidebar-foreground: 0 0% 3.9%; /* Black */
+    --sidebar-primary: 120 61% 35%; /* Darker Green */
+    --sidebar-primary-foreground: 0 0% 98%; /* Almost White */
+    --sidebar-accent: 0 0% 94%; /* Gray Accent */
+    --sidebar-accent-foreground: 0 0% 9%; /* Dark Gray */
+    --sidebar-border: 0 0% 92%; /* Light Border */
+    --sidebar-ring: 120 61% 35%; /* Darker Green */
+    --glow-color-1: 120 61% 30%;
+    --glow-color-2: 120 61% 40%;
+    --glow-color-3: 120 61% 35%;
+  }
+
+  .dark {
+    --background: 0 0% 5%; /* Matte Black */
+    --foreground: 0 0% 98%; /* Almost White */
+    --card: 0 0% 8%; /* Slightly Lighter Black */
+    --card-foreground: 0 0% 98%; /* Almost White */
+    --popover: 0 0% 5%; /* Matte Black */
+    --popover-foreground: 0 0% 98%; /* Almost White */
+    --primary: 120 61% 50%; /* Vibrant Green */
+    --primary-foreground: 0 0% 10%; /* Dark text for contrast on green */
+    --secondary: 217 33% 17%; /* Dark Blue */
+    --secondary-foreground: 0 0% 98%; /* Almost White */
+    --muted: 217 33% 17%; /* Dark Blue */
+    --muted-foreground: 215 20% 65%; /* Muted Gray-Blue */
+    --accent: 217 33% 17%; /* Dark Blue */
+    --accent-foreground: 0 0% 98%; /* Almost White */
+    --destructive: 0 63% 31%; /* Dark Red */
+    --destructive-foreground: 0 0% 98%; /* Almost White */
+    --border: 217 33% 17%; /* Dark Blue */
+    --input: 217 33% 17%; /* Dark Blue */
+    --ring: 120 61% 50%; /* Vibrant Green */
+    --chart-1: 120 61% 50%; /* Vibrant Green */
+    --chart-2: 180 80% 35%; /* Teal */
+    --chart-3: 300 80% 35%; /* Purple */
+    --chart-4: 0 63% 31%; /* Dark Red */
+    --chart-5: 215 20% 65%; /* Muted Gray-Blue */
+    --sidebar-background: 0 0% 8%; /* Slightly Lighter Black for Sidebar */
+    --sidebar-foreground: 0 0% 98%; /* Almost White for Sidebar Text */
+    --sidebar-primary: 120 61% 50%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 12%; /* Darker Border */
+    --sidebar-ring: 120 61% 50%;
+    --glow-color-1: 120 61% 40%;
+    --glow-color-2: 120 61% 55%;
+    --glow-color-3: 120 61% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  .cursor-none {
+    cursor: none;
+  }
+}
+
+@layer utilities {
+  .glow-border {
+    position: relative;
+    overflow: hidden;
+  }
+  .glow-border::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+    background: conic-gradient(
+      from 180deg at 50% 70%,
+      hsl(var(--glow-color-1)),
+      hsl(var(--glow-color-2)),
+      hsl(var(--glow-color-3)),
+      hsl(var(--glow-color-1))
+    );
+    filter: blur(30px);
+    transform: translate(-25%, 0);
+    animation: rotate 5s linear infinite;
+  }
+}
+
+@keyframes rotate {
+  to {
+    transform: translate(-25%, 0) rotate(360deg);
+  }
+}
